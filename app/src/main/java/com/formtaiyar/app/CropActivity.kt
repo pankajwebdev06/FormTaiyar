@@ -27,7 +27,6 @@ class CropActivity : AppCompatActivity() {
     private var template: PhotoTemplate = Templates.PAN_CARD
     private var processedFile: File? = null
     private var addWatermark = true
-
     private var customWidth = 400
     private var customHeight = 400
 
@@ -38,7 +37,6 @@ class CropActivity : AppCompatActivity() {
 
         val uriString = intent.getStringExtra(EXTRA_IMAGE_URI) ?: run { finish(); return }
         val templateId = intent.getStringExtra(EXTRA_TEMPLATE_ID) ?: "pan"
-
         template = Templates.all.find { it.id == templateId } ?: Templates.PAN_CARD
 
         supportActionBar?.hide()
@@ -49,18 +47,19 @@ class CropActivity : AppCompatActivity() {
     }
 
     private fun setupUI(imageUri: Uri) {
-        val cropView = binding.cropImageView
-
-        // Set aspect ratio on the custom CropView
-        if (template.id == "custom") {
-            cropView.setAspectRatio(0, 0)
-        } else {
-            cropView.setAspectRatio(template.widthPx, template.heightPx)
-        }
-
-        // Load image
         binding.tvTemplateName.text = template.nameHindi
         binding.tvTemplateDimension.text = template.dimensionLabel
+
+        val cropView = binding.cropImageView
+        if (template.id == "custom") {
+            cropView.setAspectRatio(0, 0)
+            binding.customSizePanel.visibility = View.VISIBLE
+            binding.etCustomWidth.setText(customWidth.toString())
+            binding.etCustomHeight.setText(customHeight.toString())
+        } else {
+            cropView.setAspectRatio(template.widthPx, template.heightPx)
+            binding.customSizePanel.visibility = View.GONE
+        }
 
         lifecycleScope.launch {
             val bitmap = withContext(Dispatchers.IO) {
@@ -74,16 +73,6 @@ class CropActivity : AppCompatActivity() {
             }
         }
 
-        // Custom size panel
-        if (template.id == "custom") {
-            binding.customSizePanel.visibility = View.VISIBLE
-            binding.etCustomWidth.setText(customWidth.toString())
-            binding.etCustomHeight.setText(customHeight.toString())
-        } else {
-            binding.customSizePanel.visibility = View.GONE
-        }
-
-        // Quality slider
         binding.seekbarQuality.max = 100
         binding.seekbarQuality.progress = 85
         updateQualityLabel(85)
@@ -98,12 +87,10 @@ class CropActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // Watermark toggle
         binding.switchWatermark.isChecked = true
         addWatermark = true
         binding.switchWatermark.setOnCheckedChangeListener { _, checked -> addWatermark = checked }
 
-        // Buttons
         binding.btnCrop.setOnClickListener { performCrop() }
         binding.btnSave.setOnClickListener { saveImage() }
         binding.btnShare.setOnClickListener { shareImage() }
@@ -175,13 +162,9 @@ class CropActivity : AppCompatActivity() {
     }
 
     private fun updateSizeInfo(sizeKB: Long, quality: Int, w: Int, h: Int) {
-        val sizeStatus = if (template.maxSizeKB > 0 && sizeKB > template.maxSizeKB) {
-            "⚠ ${sizeKB}KB (limit: ${template.maxSizeKB}KB)"
-        } else {
-            "✓ ${sizeKB}KB"
-        }
-        binding.tvSizeInfo.text = "Size: $sizeStatus | Quality: $quality%"
-        binding.tvDimensionInfo.text = "$w × $h px"
+        val ok = template.maxSizeKB <= 0 || sizeKB <= template.maxSizeKB
+        binding.tvSizeInfo.text = if (ok) "Size: ${sizeKB}KB OK | Quality: $quality%" else "Size: ${sizeKB}KB (limit: ${template.maxSizeKB}KB) | Quality: $quality%"
+        binding.tvDimensionInfo.text = "$w x $h px"
     }
 
     private fun updateQualityLabel(quality: Int) {
@@ -204,7 +187,6 @@ class CropActivity : AppCompatActivity() {
                     val ftDir = File(destDir, "FormTaiyar").apply { mkdirs() }
                     val dest = File(ftDir, "FormTaiyar_${template.id}_${System.currentTimeMillis()}.jpg")
                     file.copyTo(dest, overwrite = true)
-
                     val values = android.content.ContentValues().apply {
                         put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, dest.name)
                         put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
@@ -212,15 +194,10 @@ class CropActivity : AppCompatActivity() {
                     }
                     contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
                     true
-                } catch (e: Exception) {
-                    false
-                }
+                } catch (e: Exception) { false }
             }
-            if (saved) {
-                Toast.makeText(this@CropActivity, "Photo Gallery mein save ho gayi! ✓", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(this@CropActivity, "Save mein dikkat aayi. Dobara try karein.", Toast.LENGTH_SHORT).show()
-            }
+            if (saved) Toast.makeText(this@CropActivity, "Photo Gallery mein save ho gayi!", Toast.LENGTH_LONG).show()
+            else Toast.makeText(this@CropActivity, "Save mein dikkat aayi. Dobara try karein.", Toast.LENGTH_SHORT).show()
         }
     }
 
