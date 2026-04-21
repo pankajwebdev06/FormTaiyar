@@ -2,14 +2,11 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/background"
-    tools:context=".CropActivity">
+    android:background="@color/background">
 
-    <!-- Toolbar -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
@@ -20,7 +17,6 @@
         app:navigationIcon="@drawable/ic_back"
         app:navigationIconTint="@color/white" />
 
-    <!-- Template info strip -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -48,7 +44,7 @@
                 android:id="@+id/tvTemplateDimension"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="35×25mm • Max 300KB"
+                android:text="35x25mm - Max 300KB"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
 
@@ -70,7 +66,6 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Custom Crop View (no external library) -->
         <com.formtaiyar.app.CropView
             android:id="@+id/cropImageView"
             android:layout_width="match_parent"
@@ -78,7 +73,6 @@
             android:layout_weight="1"
             android:background="@color/surface" />
 
-        <!-- Bottom controls -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -86,7 +80,7 @@
             android:background="@color/surface_card"
             android:padding="16dp">
 
-            <!-- Custom size inputs (visible only for custom mode) -->
+            <!-- Custom size inputs -->
             <LinearLayout
                 android:id="@+id/customSizePanel"
                 android:layout_width="match_parent"
@@ -95,38 +89,30 @@
                 android:layout_marginBottom="12dp"
                 android:visibility="gone">
 
-                <com.google.android.material.textfield.TextInputLayout
+                <EditText
+                    android:id="@+id/etCustomWidth"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
                     android:hint="Width (px)"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+                    android:inputType="number"
+                    android:text="400"
+                    android:textSize="14sp"
+                    android:padding="10dp"
+                    android:background="@android:drawable/edit_text" />
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etCustomWidth"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:text="400" />
-
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
+                <EditText
+                    android:id="@+id/etCustomHeight"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:hint="Height (px)"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etCustomHeight"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:text="400" />
-
-                </com.google.android.material.textfield.TextInputLayout>
+                    android:inputType="number"
+                    android:text="400"
+                    android:textSize="14sp"
+                    android:padding="10dp"
+                    android:background="@android:drawable/edit_text" />
 
             </LinearLayout>
 
@@ -136,7 +122,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="8dp">
+                android:layout_marginBottom="4dp">
 
                 <ImageView
                     android:layout_width="20dp"
@@ -182,7 +168,7 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
-                <com.google.android.material.switchmaterial.SwitchMaterial
+                <Switch
                     android:id="@+id/switchWatermark"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -190,7 +176,6 @@
 
             </LinearLayout>
 
-            <!-- Crop button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCrop"
                 android:layout_width="match_parent"
@@ -212,7 +197,7 @@
         android:orientation="vertical"
         android:visibility="gone">
 
-        <androidx.core.widget.NestedScrollView
+        <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1">
@@ -232,68 +217,39 @@
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
-                <com.google.android.material.card.MaterialCardView
+                <ImageView
+                    android:id="@+id/ivPreview"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:layout_marginBottom="12dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardElevation="4dp"
-                    app:strokeColor="@color/primary_blue"
-                    app:strokeWidth="2dp">
+                    android:layout_marginBottom="16dp"
+                    android:maxWidth="280dp"
+                    android:maxHeight="360dp"
+                    android:adjustViewBounds="true"
+                    android:scaleType="fitCenter" />
 
-                    <ImageView
-                        android:id="@+id/ivPreview"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:maxWidth="280dp"
-                        android:maxHeight="360dp"
-                        android:adjustViewBounds="true"
-                        android:scaleType="fitCenter" />
-
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/tvSizeInfo"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    app:cardBackgroundColor="@color/primary_blue_light"
-                    app:cardCornerRadius="8dp"
-                    app:cardElevation="0dp">
+                    android:text="Size: --KB"
+                    android:textColor="@color/primary_blue_dark"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <TextView
-                            android:id="@+id/tvSizeInfo"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Size: --KB | Quality: --%"
-                            android:textColor="@color/primary_blue_dark"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvDimensionInfo"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="-- × -- px"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp" />
-
-                    </LinearLayout>
-
-                </com.google.android.material.card.MaterialCardView>
+                <TextView
+                    android:id="@+id/tvDimensionInfo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="-- x -- px"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
 
             </LinearLayout>
 
-        </androidx.core.widget.NestedScrollView>
+        </ScrollView>
 
-        <!-- Bottom action buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -328,8 +284,7 @@
                     android:textStyle="bold"
                     app:icon="@drawable/ic_save"
                     app:iconGravity="textStart"
-                    app:cornerRadius="10dp"
-                    style="@style/Widget.Material3.Button" />
+                    app:cornerRadius="10dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnShare"
