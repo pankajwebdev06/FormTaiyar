@@ -70,20 +70,13 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Crop View -->
-        <com.isseiaoki.simplecropview.CropImageView
+        <!-- Custom Crop View (no external library) -->
+        <com.formtaiyar.app.CropView
             android:id="@+id/cropImageView"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:background="@color/surface"
-            app:scv_crop_mode="custom"
-            app:scv_handle_color="@color/primary_blue"
-            app:scv_guide_color="@color/primary_blue_light"
-            app:scv_overlay_color="#AA000000"
-            app:scv_handle_size="14dp"
-            app:scv_touch_padding="8dp"
-            app:scv_min_frame_size="50dp" />
+            android:background="@color/surface" />
 
         <!-- Bottom controls -->
         <LinearLayout
@@ -219,7 +212,6 @@
         android:orientation="vertical"
         android:visibility="gone">
 
-        <!-- Preview Image -->
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -231,7 +223,6 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <!-- Preview label -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -241,7 +232,6 @@
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
-                <!-- Image Preview Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -263,7 +253,6 @@
 
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Size / Dimension Info -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -312,7 +301,6 @@
             android:background="@color/surface_card"
             android:padding="16dp">
 
-            <!-- Crop again -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCropAgain"
                 android:layout_width="match_parent"
