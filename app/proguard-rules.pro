@@ -1,0 +1,5 @@
+-keep class com.formtaiyar.app.** { *; }
+-keep class com.isseiaoki.simplecropview.** { *; }
+-dontwarn com.isseiaoki.simplecropview.**
+-keepattributes *Annotation*
+-keepattributes SourceFile,LineNumberTable
