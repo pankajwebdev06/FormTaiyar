@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FormTaiyar</string>
+    <string name="app_subtitle">Sarkari form ke liye photo taiyar karein</string>
+
+    <!-- Home screen -->
+    <string name="home_title">Photo Taiyar Karein — Bina Internet Ke</string>
+    <string name="home_subtitle">Aadhaar, PAN, Passport aur Exam ke liye bilkul sahi size mein</string>
+    <string name="select_type">Kaunsa form hai? Choose karein:</string>
+    <string name="select_source">Ab photo select karein:</string>
+
+    <!-- Template cards -->
+    <string name="card_pan_title">PAN Card Photo</string>
+    <string name="card_pan_sub">35×25mm • Max 300KB</string>
+    <string name="card_aadhaar_title">Aadhaar / Passport</string>
+    <string name="card_aadhaar_sub">35×45mm • Max 100KB</string>
+    <string name="card_exam_title">SSC / Sarkari Exam</string>
+    <string name="card_exam_sub">45×35mm • Max 50KB</string>
+    <string name="card_custom_title">Custom Resize</string>
+    <string name="card_custom_sub">Apni size set karein</string>
+
+    <!-- Buttons — Hinglish labels -->
+    <string name="btn_gallery">Gallery Se Chunein</string>
+    <string name="btn_camera">Camera Se Lein</string>
+    <string name="btn_crop">Photo Sahi Karein</string>
+    <string name="btn_crop_again">Dobara Crop Karein</string>
+    <string name="btn_save">Phone Me Save Karein</string>
+    <string name="btn_share">Share Karein</string>
+
+    <!-- Crop screen -->
+    <string name="preview_label">Aapki Taiyar Photo:</string>
+    <string name="watermark_label">FormTaiyar watermark lagaayein</string>
+
+    <!-- Footer -->
+    <string name="footer_offline">100% Offline — Koi internet nahi chahiye</string>
+
+    <!-- Watermark text -->
+    <string name="watermark_text">Made with FormTaiyar - Bina internet ke photo sahi karein</string>
+</resources>
