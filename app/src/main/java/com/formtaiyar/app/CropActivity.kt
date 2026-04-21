@@ -1,16 +1,16 @@
 package com.formtaiyar.app
 
 import android.content.Intent
-import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.formtaiyar.app.databinding.ActivityCropBinding
-import com.isseiaoki.simplecropview.CropImageView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -25,7 +25,6 @@ class CropActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityCropBinding
     private var template: PhotoTemplate = Templates.PAN_CARD
-    private var croppedBitmap: Bitmap? = null
     private var processedFile: File? = null
     private var addWatermark = true
 
@@ -37,38 +36,32 @@ class CropActivity : AppCompatActivity() {
         binding = ActivityCropBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val uriString = intent.getStringExtra(EXTRA_IMAGE_URI) ?: run {
-            finish()
-            return
-        }
+        val uriString = intent.getStringExtra(EXTRA_IMAGE_URI) ?: run { finish(); return }
         val templateId = intent.getStringExtra(EXTRA_TEMPLATE_ID) ?: "pan"
 
         template = Templates.all.find { it.id == templateId } ?: Templates.PAN_CARD
 
-        supportActionBar?.title = template.nameHindi
+        supportActionBar?.hide()
+        binding.toolbar.setNavigationOnClickListener { finish() }
+        binding.toolbar.title = template.nameHindi
+
         setupUI(Uri.parse(uriString))
     }
 
     private fun setupUI(imageUri: Uri) {
-        // Setup crop view
         val cropView = binding.cropImageView
 
-        // Set aspect ratio based on template
+        // Set aspect ratio on the custom CropView
         if (template.id == "custom") {
-            cropView.setCropMode(CropImageView.CropMode.FREE)
+            cropView.setAspectRatio(0, 0)
         } else {
-            cropView.setCropMode(CropImageView.CropMode.CUSTOM)
-            cropView.setCustomRatio(template.widthPx, template.heightPx)
+            cropView.setAspectRatio(template.widthPx, template.heightPx)
         }
 
-        cropView.setHandleColor(getColor(R.color.primary_blue))
-        cropView.setGuideColor(getColor(R.color.primary_blue))
-        cropView.setOverlayColor(getColor(R.color.crop_overlay))
-        cropView.setBackgroundColor(getColor(R.color.surface))
-        cropView.setHandleSize(14)
-        cropView.setTouchPadding(4)
-
         // Load image
+        binding.tvTemplateName.text = template.nameHindi
+        binding.tvTemplateDimension.text = template.dimensionLabel
+
         lifecycleScope.launch {
             val bitmap = withContext(Dispatchers.IO) {
                 ImageProcessor.loadBitmapFromUri(this@CropActivity, imageUri)
@@ -80,10 +73,6 @@ class CropActivity : AppCompatActivity() {
                 finish()
             }
         }
-
-        // Template info
-        binding.tvTemplateName.text = template.nameHindi
-        binding.tvTemplateDimension.text = template.dimensionLabel
 
         // Custom size panel
         if (template.id == "custom") {
@@ -99,41 +88,27 @@ class CropActivity : AppCompatActivity() {
         binding.seekbarQuality.progress = 85
         updateQualityLabel(85)
 
-        binding.seekbarQuality.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
-                val minProgress = 10
-                val actualProgress = progress.coerceAtLeast(minProgress)
-                if (progress < minProgress) seekBar?.progress = minProgress
-                updateQualityLabel(actualProgress)
-                // Live preview update if cropped bitmap exists
-                croppedBitmap?.let { updatePreviewSize(it, actualProgress) }
+        binding.seekbarQuality.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val actual = progress.coerceAtLeast(10)
+                if (progress < 10) seekBar?.progress = 10
+                updateQualityLabel(actual)
             }
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
         // Watermark toggle
         binding.switchWatermark.isChecked = true
         addWatermark = true
-        binding.switchWatermark.setOnCheckedChangeListener { _, isChecked ->
-            addWatermark = isChecked
-        }
+        binding.switchWatermark.setOnCheckedChangeListener { _, checked -> addWatermark = checked }
 
-        // Crop button
-        binding.btnCrop.setOnClickListener {
-            performCrop()
-        }
-
-        // Save/Share buttons
+        // Buttons
+        binding.btnCrop.setOnClickListener { performCrop() }
         binding.btnSave.setOnClickListener { saveImage() }
         binding.btnShare.setOnClickListener { shareImage() }
+        binding.btnCropAgain.setOnClickListener { showCropPanel() }
 
-        // Crop again
-        binding.btnCropAgain.setOnClickListener {
-            showCropPanel()
-        }
-
-        // Initially show only crop panel
         showCropPanel()
     }
 
@@ -141,26 +116,22 @@ class CropActivity : AppCompatActivity() {
         val quality = binding.seekbarQuality.progress.coerceAtLeast(10)
 
         if (template.id == "custom") {
-            val wStr = binding.etCustomWidth.text.toString()
-            val hStr = binding.etCustomHeight.text.toString()
-            customWidth = wStr.toIntOrNull()?.coerceIn(50, 4000) ?: 400
-            customHeight = hStr.toIntOrNull()?.coerceIn(50, 4000) ?: 400
+            customWidth = binding.etCustomWidth.text.toString().toIntOrNull()?.coerceIn(50, 4000) ?: 400
+            customHeight = binding.etCustomHeight.text.toString().toIntOrNull()?.coerceIn(50, 4000) ?: 400
         }
 
         binding.progressBar.visibility = View.VISIBLE
         binding.btnCrop.isEnabled = false
 
         lifecycleScope.launch {
-            val cropped = withContext(Dispatchers.IO) {
-                binding.cropImageView.croppedBitmap
+            val cropped = withContext(Dispatchers.Default) {
+                binding.cropImageView.getCroppedBitmap()
             }
 
             if (cropped == null) {
-                withContext(Dispatchers.Main) {
-                    binding.progressBar.visibility = View.GONE
-                    binding.btnCrop.isEnabled = true
-                    Toast.makeText(this@CropActivity, "Crop karna zaroori hai!", Toast.LENGTH_SHORT).show()
-                }
+                binding.progressBar.visibility = View.GONE
+                binding.btnCrop.isEnabled = true
+                Toast.makeText(this@CropActivity, "Photo crop nahi ho saka. Dobara try karein.", Toast.LENGTH_SHORT).show()
                 return@launch
             }
 
@@ -176,18 +147,15 @@ class CropActivity : AppCompatActivity() {
                 )
             }
 
-            withContext(Dispatchers.Main) {
-                binding.progressBar.visibility = View.GONE
-                binding.btnCrop.isEnabled = true
+            binding.progressBar.visibility = View.GONE
+            binding.btnCrop.isEnabled = true
 
-                if (processed != null) {
-                    croppedBitmap = cropped
-                    processedFile = processed
-                    val sizeKB = ImageProcessor.getFileSizeKB(processed)
-                    showPreviewPanel(processed, sizeKB, quality)
-                } else {
-                    Toast.makeText(this@CropActivity, "Processing failed. Dobara try karein.", Toast.LENGTH_SHORT).show()
-                }
+            if (processed != null) {
+                processedFile = processed
+                val sizeKB = ImageProcessor.getFileSizeKB(processed)
+                showPreviewPanel(processed, sizeKB, quality)
+            } else {
+                Toast.makeText(this@CropActivity, "Processing fail ho gayi. Dobara try karein.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -201,25 +169,19 @@ class CropActivity : AppCompatActivity() {
         binding.cropPanel.visibility = View.GONE
         binding.previewPanel.visibility = View.VISIBLE
 
-        val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+        val bitmap = BitmapFactory.decodeFile(file.absolutePath)
         binding.ivPreview.setImageBitmap(bitmap)
-
-        updateSizeInfo(sizeKB, quality)
+        updateSizeInfo(sizeKB, quality, bitmap?.width ?: 0, bitmap?.height ?: 0)
     }
 
-    private fun updateSizeInfo(sizeKB: Long, quality: Int) {
+    private fun updateSizeInfo(sizeKB: Long, quality: Int, w: Int, h: Int) {
         val sizeStatus = if (template.maxSizeKB > 0 && sizeKB > template.maxSizeKB) {
             "⚠ ${sizeKB}KB (limit: ${template.maxSizeKB}KB)"
         } else {
             "✓ ${sizeKB}KB"
         }
         binding.tvSizeInfo.text = "Size: $sizeStatus | Quality: $quality%"
-
-        val dims = processedFile?.let {
-            val bmp = android.graphics.BitmapFactory.decodeFile(it.absolutePath)
-            "${bmp?.width ?: 0} × ${bmp?.height ?: 0} px"
-        } ?: ""
-        binding.tvDimensionInfo.text = dims
+        binding.tvDimensionInfo.text = "$w × $h px"
     }
 
     private fun updateQualityLabel(quality: Int) {
@@ -231,61 +193,33 @@ class CropActivity : AppCompatActivity() {
         binding.tvQualityLabel.text = "Quality: $label"
     }
 
-    private fun updatePreviewSize(bitmap: Bitmap, quality: Int) {
-        lifecycleScope.launch {
-            val file = withContext(Dispatchers.IO) {
-                ImageProcessor.processImage(
-                    context = this@CropActivity,
-                    sourceBitmap = bitmap,
-                    template = template,
-                    qualityPercent = quality,
-                    addWatermarkFlag = addWatermark,
-                    customWidth = customWidth,
-                    customHeight = customHeight
-                )
-            }
-            file?.let {
-                processedFile = it
-                val sizeKB = ImageProcessor.getFileSizeKB(it)
-                updateSizeInfo(sizeKB, quality)
-            }
-        }
-    }
-
     private fun saveImage() {
         val file = processedFile ?: return
-
         lifecycleScope.launch {
             val saved = withContext(Dispatchers.IO) {
                 try {
-                    val destDir = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES)
-                    } else {
-                        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES)
-                    }
-                    val formTaiyarDir = File(destDir, "FormTaiyar")
-                    formTaiyarDir.mkdirs()
-                    val destFile = File(formTaiyarDir, "FormTaiyar_${template.id}_${System.currentTimeMillis()}.jpg")
-                    file.copyTo(destFile, overwrite = true)
+                    val destDir = android.os.Environment.getExternalStoragePublicDirectory(
+                        android.os.Environment.DIRECTORY_PICTURES
+                    )
+                    val ftDir = File(destDir, "FormTaiyar").apply { mkdirs() }
+                    val dest = File(ftDir, "FormTaiyar_${template.id}_${System.currentTimeMillis()}.jpg")
+                    file.copyTo(dest, overwrite = true)
 
-                    // Add to media store so it appears in gallery
                     val values = android.content.ContentValues().apply {
-                        put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, destFile.name)
+                        put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, dest.name)
                         put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                        put(android.provider.MediaStore.Images.Media.DATA, destFile.absolutePath)
+                        put(android.provider.MediaStore.Images.Media.DATA, dest.absolutePath)
                     }
                     contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-
                     true
                 } catch (e: Exception) {
                     false
                 }
             }
-
             if (saved) {
-                Toast.makeText(this@CropActivity, "Photo Gallery mein save ho gayi!", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@CropActivity, "Photo Gallery mein save ho gayi! ✓", Toast.LENGTH_LONG).show()
             } else {
-                Toast.makeText(this@CropActivity, "Save karne mein dikkat aayi. Dobara try karein.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@CropActivity, "Save mein dikkat aayi. Dobara try karein.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -293,12 +227,12 @@ class CropActivity : AppCompatActivity() {
     private fun shareImage() {
         val file = processedFile ?: return
         val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
-        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+        val intent = Intent(Intent.ACTION_SEND).apply {
             type = "image/jpeg"
             putExtra(Intent.EXTRA_STREAM, uri)
             putExtra(Intent.EXTRA_TEXT, ImageProcessor.WATERMARK_TEXT)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        startActivity(Intent.createChooser(shareIntent, "Photo Share Karein"))
+        startActivity(Intent.createChooser(intent, "Photo Share Karein"))
     }
 }
