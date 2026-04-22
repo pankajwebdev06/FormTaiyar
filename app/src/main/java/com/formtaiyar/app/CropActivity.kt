@@ -1,13 +1,21 @@
 package com.formtaiyar.app
 
+import android.Manifest
+import android.content.ContentValues
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.View
 import android.widget.SeekBar
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.formtaiyar.app.databinding.ActivityCropBinding
@@ -29,6 +37,13 @@ class CropActivity : AppCompatActivity() {
     private var addWatermark = true
     private var customWidth = 400
     private var customHeight = 400
+
+    private val writePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) saveImageInternal()
+        else Toast.makeText(this, "Storage permission chahiye — settings mein allow karein", Toast.LENGTH_LONG).show()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -176,30 +191,89 @@ class CropActivity : AppCompatActivity() {
         binding.tvQualityLabel.text = "Quality: $label"
     }
 
+    // ── Save ──────────────────────────────────────────────────────────────────
+
     private fun saveImage() {
+        processedFile ?: run {
+            Toast.makeText(this, "Pehle photo crop karein", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // On API 26-28 we need WRITE_EXTERNAL_STORAGE at runtime
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                writePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                return
+            }
+        }
+        saveImageInternal()
+    }
+
+    private fun saveImageInternal() {
         val file = processedFile ?: return
         lifecycleScope.launch {
             val saved = withContext(Dispatchers.IO) {
                 try {
-                    val destDir = android.os.Environment.getExternalStoragePublicDirectory(
-                        android.os.Environment.DIRECTORY_PICTURES
-                    )
-                    val ftDir = File(destDir, "FormTaiyar").apply { mkdirs() }
-                    val dest = File(ftDir, "FormTaiyar_${template.id}_${System.currentTimeMillis()}.jpg")
-                    file.copyTo(dest, overwrite = true)
-                    val values = android.content.ContentValues().apply {
-                        put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, dest.name)
-                        put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                        put(android.provider.MediaStore.Images.Media.DATA, dest.absolutePath)
+                    val filename = "FormTaiyar_${template.id}_${System.currentTimeMillis()}.jpg"
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        // API 29+ — Scoped storage via MediaStore
+                        val values = ContentValues().apply {
+                            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                            put(MediaStore.Images.Media.RELATIVE_PATH,
+                                "${Environment.DIRECTORY_PICTURES}/FormTaiyar")
+                        }
+                        val uri = contentResolver.insert(
+                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+                        )
+                        if (uri != null) {
+                            contentResolver.openOutputStream(uri)?.use { out ->
+                                file.inputStream().use { it.copyTo(out) }
+                            }
+                            true
+                        } else false
+                    } else {
+                        // API 26-28 — Direct file write
+                        val destDir = Environment.getExternalStoragePublicDirectory(
+                            Environment.DIRECTORY_PICTURES
+                        )
+                        val ftDir = File(destDir, "FormTaiyar").apply { mkdirs() }
+                        val dest = File(ftDir, filename)
+                        file.copyTo(dest, overwrite = true)
+                        // Notify MediaStore so the image appears in Gallery
+                        val values = ContentValues().apply {
+                            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                            @Suppress("DEPRECATION")
+                            put(MediaStore.Images.Media.DATA, dest.absolutePath)
+                        }
+                        contentResolver.insert(
+                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+                        )
+                        true
                     }
-                    contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-                    true
-                } catch (e: Exception) { false }
+                } catch (e: Exception) {
+                    false
+                }
             }
-            if (saved) Toast.makeText(this@CropActivity, "Photo Gallery mein save ho gayi!", Toast.LENGTH_LONG).show()
-            else Toast.makeText(this@CropActivity, "Save mein dikkat aayi. Dobara try karein.", Toast.LENGTH_SHORT).show()
+            if (saved) {
+                Toast.makeText(
+                    this@CropActivity,
+                    "Photo Gallery mein save ho gayi!",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                Toast.makeText(
+                    this@CropActivity,
+                    "Save mein dikkat aayi. Dobara try karein.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
+
+    // ── Share ─────────────────────────────────────────────────────────────────
 
     private fun shareImage() {
         val file = processedFile ?: return
